@@ -187,6 +187,11 @@ function refreshCityRow(){
 function refreshCategoryChips(){
   buildChips(categoryChipsEl, uniqueSorted('category'), activeCategories, null, () => { refreshCategoryChips(); render(); });
 }
+function priceValue(t){
+  if(t.priceIsPlex) return Infinity;
+  const n = parseFloat(String(t.priceDisplay).replace(/[^0-9.]/g, ''));
+  return isNaN(n) ? Infinity : n;
+}
 function matchesSearch(t, query){
   if(!query) return true;
   const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
@@ -270,7 +275,7 @@ function render(){
     if(activeCities.size && !activeCities.has(t.city)) return false;
     if(activeCategories.size && !activeCategories.has(t.category)) return false;
     return matchesSearch(t, query);
-  });
+  }).sort((a, b) => priceValue(a) - priceValue(b));
   countNum.textContent = filtered.length;
   grid.innerHTML = '';
   emptyState.style.display = filtered.length ? 'none' : 'block';
