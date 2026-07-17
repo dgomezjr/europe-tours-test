@@ -31,6 +31,23 @@ from openpyxl import load_workbook
 BLOCK_HEADERS = {"STEP by STEP:", "BASIC INFO:", "INCLUSIONS and RESTRICTIONS:",
                   "NOT INCLUDED:", "IMPORTANT GENERAL NOTES:"}
 
+# Auto-detected theme tags — layered on top of the supplier-authored "Tour Type
+# Tags" column. These exist because "Food/Wine" and "Culture/History" are each
+# broad enough (1,360 and 386 tours respectively) that filtering by category
+# alone doesn't actually narrow anything down.
+THEME_PATTERNS = [
+    ("Wine Tasting/Vineyard", re.compile(r"\b(wine tasting|vineyard|winery|wine estate|wine experience)\b", re.I)),
+    ("Cooking Class", re.compile(r"cooking class|cooking experience|hands-on cook|culinary class", re.I)),
+    ("Castle/Palace", re.compile(r"\b(castle|palace|chateau|schloss)\b", re.I)),
+    ("Museum/Art", re.compile(r"\b(museum|gallery|masterpiece)\b", re.I)),
+    ("Church/Religious", re.compile(r"\b(church|cathedral|basilica|synagogue|monastery|abbey)\b", re.I)),
+]
+
+
+def detect_themes(*texts):
+    haystack = " ".join(t for t in texts if isinstance(t, str))
+    return [name for name, pattern in THEME_PATTERNS if pattern.search(haystack)]
+
 
 def is_boundary(line):
     s = line.strip()
@@ -129,6 +146,7 @@ def main():
 
         intro, bullets, ready = parse_highlights(r["Tour Highlights"], r["Content"], str(r["Tour"]))
         tour_id = f"row{int(r['excel_row'])}"
+        themes = detect_themes(str(r["Tour"]), r["Content"], r["Tour Highlights"], r["Details"])
 
         index_items.append({
             "id": tour_id,
@@ -144,6 +162,7 @@ def main():
             "summaryBullets": bullets,
             "highlightsReady": ready,
             "tags": tags_list,
+            "themes": themes,
         })
         content_text = clean_content(r["Content"], str(r["Tour"]))
         details_text = dedupe_details(str(r["Details"]) if pd.notna(r["Details"]) else "")

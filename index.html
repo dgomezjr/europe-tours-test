@@ -104,6 +104,7 @@
       <div class="filter-group"><span class="fg-label">Country</span><span class="chips" id="countryChips"></span></div>
       <div class="filter-group city-row" id="cityRow" style="display:none;"><span class="fg-label">City</span><span class="chips" id="cityChips"></span></div>
       <div class="filter-group"><span class="fg-label">Category</span><span class="chips" id="categoryChips"></span></div>
+      <div class="filter-group"><span class="fg-label">Theme</span><span class="chips" id="themeChips"></span></div>
     </div>
   </header>
 
@@ -130,6 +131,7 @@ const countryChipsEl = document.getElementById('countryChips');
 const cityChipsEl = document.getElementById('cityChips');
 const cityRow = document.getElementById('cityRow');
 const categoryChipsEl = document.getElementById('categoryChips');
+const themeChipsEl = document.getElementById('themeChips');
 const grid = document.getElementById('grid');
 const searchBox = document.getElementById('searchBox');
 const clearBtn = document.getElementById('clearBtn');
@@ -143,6 +145,7 @@ const loadingLine = document.getElementById('loadingLine');
 let activeCountries = new Set();
 let activeCities = new Set();
 let activeCategories = new Set();
+let activeThemes = new Set();
 
 async function boot(){
   try{
@@ -151,7 +154,7 @@ async function boot(){
     TOURS = json.tours;
     totalNum.textContent = TOURS.length;
     loadingLine.style.display = 'none';
-    refreshCountryChips(); refreshCityRow(); refreshCategoryChips(); render();
+    refreshCountryChips(); refreshCityRow(); refreshCategoryChips(); refreshThemeChips(); render();
   }catch(e){
     loadingLine.textContent = 'Could not load tour data — try refreshing.';
   }
@@ -187,6 +190,12 @@ function refreshCityRow(){
 function refreshCategoryChips(){
   buildChips(categoryChipsEl, uniqueSorted('category'), activeCategories, null, () => { refreshCategoryChips(); render(); });
 }
+function uniqueThemes(){
+  return [...new Set(TOURS.flatMap(t => t.themes || []))].sort();
+}
+function refreshThemeChips(){
+  buildChips(themeChipsEl, uniqueThemes(), activeThemes, null, () => { refreshThemeChips(); render(); });
+}
 function priceValue(t){
   if(t.priceIsPlex) return Infinity;
   const n = parseFloat(String(t.priceDisplay).replace(/[^0-9.]/g, ''));
@@ -195,7 +204,7 @@ function priceValue(t){
 function matchesSearch(t, query){
   if(!query) return true;
   const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  const haystack = (t.tour+' '+t.city+' '+t.country+' '+t.category+' '+t.style+' '+t.summaryIntro+' '+(t.summaryBullets||[]).join(' ')+' '+(t.tags||[]).join(' ')).toLowerCase();
+  const haystack = (t.tour+' '+t.city+' '+t.country+' '+t.category+' '+t.style+' '+t.summaryIntro+' '+(t.summaryBullets||[]).join(' ')+' '+(t.tags||[]).join(' ')+' '+(t.themes||[]).join(' ')).toLowerCase();
   return words.every(w => haystack.includes(w));
 }
 function formatFullDetails(text){
@@ -230,7 +239,7 @@ async function openModal(t){
       <div class="price-label">Starting price for 2 pax</div>
       <div class="${t.priceIsPlex ? 'price-value plex' : 'price-value'}" style="font-size:16px;">${t.priceDisplay}</div>
     </div>
-    <div class="tag-row" style="margin-bottom:14px;">${(t.tags||[]).map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
+    <div class="tag-row" style="margin-bottom:14px;">${[...(t.tags||[]), ...(t.themes||[])].map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
     ${summaryBlock}
     <div class="full-details" id="fullDetailsArea">Loading full details…</div>
     <div class="modal-footer">
@@ -274,6 +283,7 @@ function render(){
     if(activeCountries.size && !activeCountries.has(t.country)) return false;
     if(activeCities.size && !activeCities.has(t.city)) return false;
     if(activeCategories.size && !activeCategories.has(t.category)) return false;
+    if(activeThemes.size && !(t.themes||[]).some(x => activeThemes.has(x))) return false;
     return matchesSearch(t, query);
   }).sort((a, b) => priceValue(a) - priceValue(b));
   countNum.textContent = filtered.length;
@@ -290,7 +300,7 @@ function render(){
       <h3>${t.tour}</h3>
       <div class="meta-row"><span>&#9201; ${t.duration || '—'}</span><span>&middot;</span><span>${t.style || '—'}</span></div>
       ${summaryBlock}
-      <div class="tag-row">${(t.tags||[]).map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
+      <div class="tag-row">${[...(t.tags||[]), ...(t.themes||[])].map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
       <div class="card-footer">
         <div><span class="price-label">Starting price for 2 pax</span></div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
