@@ -200,7 +200,7 @@ function matchesSearch(t, query){
 }
 function formatFullDetails(text){
   const escaped = (text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return escaped.replace(/^(STEP by STEP:|BASIC INFO:|INCLUSIONS and RESTRICTIONS:|NOT INCLUDED:|IMPORTANT GENERAL NOTES:)$/gm, '<h4>$1</h4>');
+  return escaped.replace(/^(OVERVIEW:|STEP by STEP:|BASIC INFO:|INCLUSIONS and RESTRICTIONS:|NOT INCLUDED:|IMPORTANT GENERAL NOTES:)$/gm, '<h4>$1</h4>');
 }
 async function fetchDetails(id){
   // All tour details load together, once, the first time anyone opens a card —

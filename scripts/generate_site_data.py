@@ -75,6 +75,25 @@ def parse_highlights(text, content, tour):
     return intro, [], False
 
 
+def clean_content(content, tour):
+    c = str(content) if isinstance(content, str) else ""
+    if not c.strip() or c.strip().lower() == "nan":
+        return ""
+    if c.startswith(tour):
+        c = c[len(tour):].strip(' -')
+    return c.strip()
+
+
+def should_include_overview(content_text, intro):
+    if not content_text:
+        return False
+    c_norm = ' '.join(content_text.split())
+    i_norm = ' '.join(intro.split())
+    if not c_norm or c_norm == i_norm:
+        return False
+    return len(c_norm) > len(i_norm) + 20
+
+
 def main():
     if len(sys.argv) != 2:
         print("Usage: python3 generate_site_data.py /path/to/master.xlsx")
@@ -126,7 +145,14 @@ def main():
             "highlightsReady": ready,
             "tags": tags_list,
         })
-        details_map[tour_id] = dedupe_details(str(r["Details"]) if pd.notna(r["Details"]) else "")
+        content_text = clean_content(r["Content"], str(r["Tour"]))
+        details_text = dedupe_details(str(r["Details"]) if pd.notna(r["Details"]) else "")
+        parts = []
+        if should_include_overview(content_text, intro):
+            parts.append("OVERVIEW:\n" + content_text)
+        if details_text:
+            parts.append(details_text)
+        details_map[tour_id] = "\n\n".join(parts)
 
     with open(out_dir / "tours-index.json", "w") as f:
         json.dump({"generatedAt": pd.Timestamp.now().strftime("%Y-%m-%d"),
